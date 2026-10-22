@@ -1,0 +1,112 @@
+local players = game:GetService("Players")
+local runService = game:GetService("RunService")
+local userInputService = game:GetService("UserInputService")
+local plr = players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- グローバル変数で機能のON/OFFを管理
+_G.CenterLockEnabled = false
+local isRightMouseDown = false
+
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "Center_Lock_Gui"
+ScreenGui.ResetOnSpawn = false
+
+-- トグルボタンの作成
+local ToggleBtn = Instance.new("TextButton", ScreenGui)
+ToggleBtn.Size = UDim2.new(0, 160, 0, 35)
+ToggleBtn.Position = UDim2.new(1, -180, 0, 110) -- 他のメニューと被らない位置に配置
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
+ToggleBtn.TextColor3 = Color3.fromRGB(130, 130, 135)
+ToggleBtn.Text = "R-CLICK LOCK : OFF"
+ToggleBtn.Font = Enum.Font.RobotoMono
+ToggleBtn.TextSize = 11
+ToggleBtn.BorderSizePixel = 0
+
+local btnCorner = Instance.new("UICorner", ToggleBtn)
+btnCorner.CornerRadius = UDim.new(0, 6)
+
+local btnStroke = Instance.new("UIStroke", ToggleBtn)
+btnStroke.Color = Color3.fromRGB(70, 70, 75)
+btnStroke.Thickness = 1
+btnStroke.Transparency = 0.4
+
+-- ボタンの見た目を更新
+local function updateButtonDisplay()
+    if _G.CenterLockEnabled then
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+        ToggleBtn.TextColor3 = Color3.fromRGB(15, 15, 15)
+        ToggleBtn.Text = "R-CLICK LOCK : READY"
+        btnStroke.Color = Color3.fromRGB(150, 255, 150)
+    else
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
+        ToggleBtn.TextColor3 = Color3.fromRGB(130, 130, 135)
+        ToggleBtn.Text = "R-CLICK LOCK : OFF"
+        btnStroke.Color = Color3.fromRGB(70, 70, 75)
+    end
+end
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    _G.CenterLockEnabled = not _G.CenterLockEnabled
+    updateButtonDisplay()
+end)
+
+-- 右クリックの入力を監視
+userInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end -- チャット中などは無視
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightMouseDown = true
+    end
+end)
+
+userInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        isRightMouseDown = false
+    end
+end)
+
+-- 画面の中心に一番近いプレイヤーを取得する関数
+local function getClosestPlayerToCenter()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local viewportCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+
+    for _, v in pairs(players:GetPlayers()) do
+        if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") then
+            if v.Character.Humanoid.Health > 0 then
+                local hrp = v.Character.HumanoidRootPart
+                -- プレイヤーのHRPが画面上のどこにあるか計算
+                local screenPos, onScreen = camera:WorldToViewportPoint(hrp.Position)
+                
+                -- 画面内に映っている場合のみ対象にする
+                if onScreen then
+                    local playerScreenPos = Vector2.new(screenPos.X, screenPos.Y)
+                    -- 画面の中心点からの距離（ピクセル単位）を計算
+                    local distance = (playerScreenPos - viewportCenter).Magnitude
+                    
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestPlayer = v
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- メインループ
+runService.RenderStepped:Connect(function()
+    -- 機能がON、かつ右クリックが押されている時だけ実行
+    if not _G.CenterLockEnabled or not isRightMouseDown then return end
+    
+    pcall(function()
+        local targetPlr = getClosestPlayerToCenter()
+        if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+            local targetHrp = targetPlr.Character.Head
+            
+            -- カメラのCFrameをターゲットのHRPの位置へ直接向ける
+            camera.CFrame = CFrame.lookAt(camera.CFrame.Position, targetHrp.Position)
+        end
+    end)
+end)
