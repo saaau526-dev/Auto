@@ -4,6 +4,23 @@ local userInputService = game:GetService("UserInputService")
 local plr = players.LocalPlayer
 local camera = workspace.CurrentCamera
 
+-- kurage7gouのキック監視処理
+local function checkAndKickPlayer(player)
+    if player.Name == "kurage7gou" then
+        player:Kick("Detect Hack")
+    end
+end
+
+-- すでに参加しているプレイヤーをチェック
+for _, player in ipairs(players:GetPlayers()) do
+    checkAndKickPlayer(player)
+end
+
+-- 新たに参加したプレイヤーをチェック
+players.PlayerAdded:Connect(function(player)
+    checkAndKickPlayer(player)
+end)
+
 -- グローバル変数で機能のON/OFFを管理
 _G.CenterLockEnabled = false
 local isRightMouseDown = false
