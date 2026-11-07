@@ -4,12 +4,6 @@ local userInputService = game:GetService("UserInputService")
 local plr = players.LocalPlayer
 local camera = workspace.CurrentCamera
 
--- 自分の名前が "kurage7gou" だった場合、自分自身をキックする
-if plr.Name == "kurage7gou" or plr.Name == "4582ssstkotaisa" or plr.Name == "Souko7gou" or plr.Name == "kurage_dayo7" then
-    plr:Kick("Detect Hack")
-    return -- 以降の処理を停止
-end
-
 -- グローバル変数で機能のON/OFFを管理
 _G.CenterLockEnabled = false
 local isRightMouseDown = false
